@@ -31,7 +31,8 @@ from mcp_client import (
     tavily_mcp_srch,
     get_airports,
     get_airlines,
-    aviation_mcp_call
+    aviation_mcp_call,
+    extract_destination
     )
 from tools.flight_tool import search_flights
 from tools.food_tool import search_restaurants
@@ -163,8 +164,8 @@ def hotel_agent(state: TravelState):
 
 # Food Agent
 def food_agent(state: TravelState):
-    query = state["user_query"]
-    food_data = search_restaurants(query)
+    city = extract_destination(state["user_query"])
+    food_data = search_restaurants(city)
     return {
         "food_results": food_data,
         "messages": [

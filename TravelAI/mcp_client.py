@@ -2,6 +2,7 @@ import os
 import asyncio
 
 from dotenv import load_dotenv
+from langchain_groq import ChatGroq
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
 
@@ -10,6 +11,12 @@ load_dotenv()
 TAVILY_API_KEY=os.getenv("TAVILY_API_KEY")
 AVIATIONSTACK_API_KEY = os.getenv("AVIATIONSTACK_API_KEY")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
+# LLM
+llm = ChatGroq(
+    model="llama-3.3-70b-versatile"
+)
+
 
 client=MultiServerMCPClient(
     {
@@ -30,7 +37,7 @@ client=MultiServerMCPClient(
                 "AVIATION_STACK_API_KEY": AVIATIONSTACK_API_KEY
             }
         },
-        "weather": {
+        "restaurant": {
                 "transport": "stdio",
                 "command": r"C:\Users\B01005183\Desktop\TravelAI-MCP-main\langgraph_env3\Scripts\python.exe",
                 "args": [
@@ -124,6 +131,65 @@ async def get_airlines():
 
     return result
 
+restaurant_tool = None
+top_restaurant_tool = None
+
+
+async def initialize_restaurant_tools():
+
+    global restaurant_tool, top_restaurant_tool
+
+    if restaurant_tool is not None:
+        return
+
+    tools = await client.get_tools()
+
+    restaurant_tool = next(
+        t for t in tools
+        if t.name == "get_near_restaurant"
+    )
+
+    top_restaurant_tool = next(
+        t for t in tools
+        if t.name == "get_top_restaurant"
+    )
+
+
+async def restaurant_mcp_search(city: str):
+
+    await initialize_restaurant_tools()
+
+    return await restaurant_tool.ainvoke(
+        {
+            "city": city
+        }
+    )
+
+
+async def top_restaurant_mcp_search(city: str):
+
+    await initialize_restaurant_tools()
+
+    return await top_restaurant_tool.ainvoke(
+        {
+            "city": city
+        }
+    )
+
+def extract_destination(query: str):
+
+    prompt = f"""
+    Extract only the destination city or country.
+
+    Query:
+    {query}
+
+    Return only destination name.
+    """
+
+    response = llm.invoke(prompt)
+
+    return response.content.strip()
 
 
 
